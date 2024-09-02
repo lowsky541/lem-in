@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "npm run visualizer:bundle && npm run lem-in:build",
+    "lem-in:build": "go build -o bin/lem-in .",
+    "visualizer:bundle": "cd visualizer && vite build"
+  },
+  "dependencies": {
+    "graphology": "^0.25.4",
+    "sigma": "3.0.0-alpha3"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4",
+    "sass": "^1.69.5",
+    "vite": "^4.5.0",
+    "terser": "5.23.0"
+  }
+}
