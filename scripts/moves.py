@@ -15,7 +15,7 @@ def extract_ant_move(move: str):
 
 def print_moves(ants):
     for ant_id, moves in ants.items():
-        moves = " > ".join([f"T{t + 1}#{m}" for (t, m) in moves])
+        moves = " > ".join([f"{t + 1}#{m}" for (t, m) in moves])
         print(f"{ant_id:<4} :: {moves}")
 
 
@@ -29,4 +29,5 @@ if match:
         for move in turn_moves:
             ant_id, ant_moved_to = extract_ant_move(move)
             ants[ant_id].append((turn, ant_moved_to))
+    print(f"{"TURN":<4} :: ANT#ROOM")
     print_moves(ants)
