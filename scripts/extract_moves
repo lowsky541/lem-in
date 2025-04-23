@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Usage: go run . samples/example02 | python3 scripts/moves.py
+# Descr: Takes the output of the lem-in program and provides a nicer display
+# of ant moves across the turns. This script gives for each turn,
+# the id of the ant and the room it moved to.
+# Usage: go run . samples/example02 | python3 scripts/extract_moves
 
 from sys import stdin
 from re import search, MULTILINE, IGNORECASE
@@ -15,7 +18,7 @@ def extract_ant_move(move: str):
 
 def print_moves(ants):
     for ant_id, moves in ants.items():
-        moves = " > ".join([f"{t + 1}#{m}" for (t, m) in moves])
+        moves = ", ".join([f"{t + 1} to \"{m}\"" for (t, m) in moves])
         print(f"{ant_id:<4} :: {moves}")
 
 
@@ -29,5 +32,5 @@ if match:
         for move in turn_moves:
             ant_id, ant_moved_to = extract_ant_move(move)
             ants[ant_id].append((turn, ant_moved_to))
-    print(f"{"TURN":<4} :: ANT#ROOM")
+    print(f"{"TURN":<4} :: MOVES")
     print_moves(ants)

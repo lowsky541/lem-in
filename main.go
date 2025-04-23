@@ -50,12 +50,14 @@ func main() {
 
 	fmt.Printf("Parsed input file in %v.\n\n", time.Since(start))
 
+	// Check if an ant can go from the start to the
+	// end node by running Dijkstra.
 	if !lemin.IsSane(&context) {
 		Fatal(lemin.ErrInsaneGraph)
 		return
 	}
 
-	var turns []lemin.Turn
+	turns := []lemin.Turn{}
 	if !noPathFinding {
 		start = time.Now()
 

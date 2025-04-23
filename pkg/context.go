@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// Describe all the structures of a parsed input file.
 type Context struct {
 	Ants    int
 	Start   *Room
@@ -200,6 +201,10 @@ func (p *Context) PrintBanner() {
 
 	fmt.Println()
 }
+
+///////////////////////////////////////////////////////////////////////////////////////
+//                                   Utilities
+///////////////////////////////////////////////////////////////////////////////////////
 
 // The distance between two rooms
 func Distance(r1 *Room, r2 *Room) float64 {

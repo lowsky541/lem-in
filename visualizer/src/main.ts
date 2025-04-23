@@ -45,7 +45,7 @@ interface Data {
 window.onload = async () => {
     let currentTurn: number = 0;
 
-    const graph = new Graph();
+    const graph = new Graph({});
     const sigmaContainer = document.querySelector("#sigma")! as HTMLDivElement;
 
     const data: Data = await fetch("/data", {
