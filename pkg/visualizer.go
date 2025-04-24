@@ -5,15 +5,6 @@ import (
 	"net/http"
 )
 
-type ContextResponse struct {
-	Ants    int       `json:"ants"`
-	Start   uint      `json:"start"`
-	End     uint      `json:"end"`
-	Rooms   []*Room   `json:"rooms"`
-	Tunnels []*Tunnel `json:"tunnels"`
-	Turns   []Turn    `json:"turns"`
-}
-
 func ServeVisualizer(assets http.FileSystem, parser *Context, addr string, turns []Turn) error {
 	srv := http.Server{Addr: addr}
 

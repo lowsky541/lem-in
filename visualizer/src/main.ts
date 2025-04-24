@@ -1,34 +1,55 @@
-import { LeminContext } from "./data";
+import { Bounds, ILeminContext, IRoom, LeminContext, transform, Vec2 } from "./data";
 import "./main.scss";
 
-function draw(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, { rooms, tunnels, turns }: LeminContext) {
+const settings = {
+  zoom: 1.0,
+  nodeRadius: 5,
+  lineThickness: 3,
+  colors: {
+    lines: 'grey',
+    normal: 'blue',
+    start: 'green',
+    end: 'red',
+  }
+};
+
+function getBounds(rooms: Array<IRoom>): Bounds {
+  const [{ x: initialX, y: initialY }] = rooms;
+  const initial = { left: initialX, right: initialX, top: initialY, bottom: initialY };
+
+  return rooms.reduce((prev, curr) => {
+    return {
+      top: Math.min(prev.top, curr.y),
+      right: Math.max(prev.right, curr.x),
+      bottom: Math.max(prev.bottom, curr.y),
+      left: Math.min(prev.left, curr.x),
+    };
+  }, initial);
+}
+
+function draw(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, { rooms, tunnels }: LeminContext) {
   canvas.width = window.innerWidth, canvas.height = window.innerHeight;
 
-  const firstRoom = rooms[0];
-  const highest = rooms.reduce((prev, curr) => {
-    return {
-      x1: Math.min(prev.x1, curr.x), x2: Math.max(prev.x2, curr.x),
-      y1: Math.min(prev.y1, curr.y), y2: Math.max(prev.y2, curr.y),
-    };
-  }, { x1: firstRoom.x, x2: firstRoom.x, y1: firstRoom.y, y2: firstRoom.y });
-  const scalingFactor = { x: canvas.clientWidth / (highest.x2 + highest.x1), y: canvas.clientHeight / (highest.y2 + highest.y1) };
+  const bounds = getBounds(rooms);
+  const scalingFactors = {
+    x: canvas.clientWidth / (bounds.right + bounds.left + settings.zoom),
+    y: canvas.clientHeight / (bounds.bottom + bounds.top + settings.zoom),
+  } as Vec2;
 
   tunnels.forEach(tunnel => {
-    const from = rooms.find(r => r.id === tunnel.from)!;
-    const to = rooms.find(r => r.id === tunnel.to)!;
-
     context.beginPath();
-    context.moveTo(from.x * scalingFactor.x, from.y * scalingFactor.y);
-    context.lineTo(to.x * scalingFactor.x, to.y * scalingFactor.y);
-    context.strokeStyle = 'grey';
+    context.moveTo((settings.zoom / 2 + tunnel.from.x) * scalingFactors.x, (settings.zoom / 2 + tunnel.from.y) * scalingFactors.y);
+    context.lineTo((settings.zoom / 2 + tunnel.to.x) * scalingFactors.x, (settings.zoom / 2 + tunnel.to.y) * scalingFactors.y);
+    context.lineWidth = settings.lineThickness;
+    context.strokeStyle = settings.colors.lines;
     context.stroke();
   });
 
   rooms.forEach(room => {
     context.beginPath();
-    context.arc(room.x * scalingFactor.x, room.y * scalingFactor.y, 10, 0, Math.PI * 2);
-    context.fillStyle = room.isStart ? "green" : room.isEnd ? "red" : "magenta",
-      context.fill();
+    context.arc((settings.zoom / 2 + room.x) * scalingFactors.x, (settings.zoom / 2 + room.y) * scalingFactors.y, settings.nodeRadius, 0, Math.PI * 2);
+    context.fillStyle = room.isStart ? settings.colors.start : room.isEnd ? settings.colors.end : settings.colors.normal;
+    context.fill();
   });
 }
 
@@ -46,6 +67,10 @@ function main(lemin: LeminContext) {
 }
 
 window.onload = async () => fetch("/context")
-  .then(r => r.json())
-  .then(r => main(r))
+  .then((response): Promise<ILeminContext> => {
+    if (!response.ok) throw new Error(response.statusText);
+    else return response.json();
+  })
+  .then(transform)
+  .then(main)
   .catch(alert);
