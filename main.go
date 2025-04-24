@@ -2,32 +2,50 @@ package main
 
 import (
 	"embed"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
 	lemin "lemin/pkg"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 )
 
-func Fatal(e error) {
+//go:embed visualizer/dist
+var assets embed.FS
+
+func fatal(e error) {
 	fmt.Printf("Error: %s\n", e.Error())
 	os.Exit(1)
 }
 
-func main() {
-	var visEnable, noPathFinding bool
-	var visBind string
-	var visPort int
+func assetsFilesystem(assetsDir string) http.FileSystem {
+	if isEmpty(assetsDir) {
+		fsys, err := fs.Sub(assets, "visualizer/dist")
+		if err != nil {
+			panic(err)
+		}
+		return http.FS(fsys)
+	} else {
+		return http.Dir(assetsDir)
+	}
+}
 
-	flag.BoolVar(&visEnable, "vis-enable", false, "Enable visualizer HTTP server")
-	flag.StringVar(&visBind, "vis-bind", "127.0.0.1", "Specify bind address for visualizer")
-	flag.IntVar(&visPort, "vis-port", 3000, "Specify port for visualizer")
-	flag.BoolVar(&noPathFinding, "no-path-finding", false, "Do not run path finding")
+func isEmpty(s string) bool {
+	return strings.TrimSpace(s) == ""
+}
+
+func main() {
+	var fileInfo os.FileInfo
+	var err error
+	var bind, assetsDir string
+	var visualize, port uint
+
+	flag.UintVar(&visualize, "visualize", 0, "Enable visualizer HTTP server; 0 = disable, 1 = enable; 2 = enable without pathfinding")
+	flag.StringVar(&bind, "bind", "127.0.0.1", "Specify bind address for visualizer")
+	flag.UintVar(&port, "port", 3000, "Specify port for visualizer")
+	flag.StringVar(&assetsDir, "assets-dir", "", "Serve this directory instead of embedded assets; enables visualizer; useful for debugging")
 	flag.Usage = func() {
 		fmt.Println("usage: lem-in [OPTION] FILENAME")
 		flag.PrintDefaults()
@@ -40,65 +58,63 @@ func main() {
 		return
 	}
 
+	fileInfo, err = os.Stat(filename)
+	if err != nil {
+		fatal(err)
+	}
+
+	if !fileInfo.Mode().IsRegular() {
+		fatal(fmt.Errorf("%s: not a regular file", filename))
+	}
+
+	if !isEmpty(assetsDir) {
+		// Doesn't make sense to set the assets dir without
+		// enabling the visualizer
+		visualize = 1
+
+		fileInfo, err = os.Stat(assetsDir)
+		if err != nil {
+			fatal(err)
+		}
+
+		if !fileInfo.IsDir() {
+			fatal(fmt.Errorf("%s: not a directory", assetsDir))
+		}
+	}
+
+	fmt.Println("== visualizer", visualize)
+
 	start := time.Now()
 	context := lemin.Context{}
 	if err := context.Parse(filename); err != nil {
-		Fatal(err)
-		return
+		fatal(err)
 	}
 	context.PrintBanner()
 
-	fmt.Printf("Parsed input file in %v.\n\n", time.Since(start))
+	fmt.Printf("Parsed input file in %v.\n", time.Since(start))
+	if visualize < 2 {
+		fmt.Println()
+	}
 
 	// Check if an ant can go from the start to the
 	// end node by running Dijkstra.
-	if !lemin.IsSane(&context) {
-		Fatal(lemin.ErrInsaneGraph)
-		return
+	if visualize < 2 && !lemin.IsSane(&context) {
+		fatal(lemin.ErrInsaneGraph)
 	}
 
 	turns := []lemin.Turn{}
-	if !noPathFinding {
+	if visualize < 2 {
 		start = time.Now()
 
 		turns = lemin.Lemin(&context)
-		fmt.Printf("\nFinished in %d turns.\n", len(turns))
-		fmt.Printf("Time is %v.\n", time.Since(start))
+		fmt.Printf("\nFinished in %v and %d turns.\n", time.Since(start), len(turns))
 	}
 
-	if visEnable {
-		addr := fmt.Sprintf("%s:%d", visBind, visPort)
+	if visualize > 0 {
+		fsys := assetsFilesystem(assetsDir)
+		addr := fmt.Sprintf("%s:%d", bind, port)
 
 		fmt.Printf("\nAll done, will now serve at http://%s...\n", addr)
-		ServeVisualizer(&context, addr, turns)
+		lemin.ServeVisualizer(fsys, &context, addr, turns)
 	}
-}
-
-//go:embed visualizer/dist/assets
-//go:embed visualizer/dist/index.html
-var embeddedFS embed.FS
-
-func ServeVisualizer(parser *lemin.Context, addr string, turns []lemin.Turn) {
-	rootDir, err := fs.Sub(embeddedFS, "visualizer/dist")
-	if err != nil {
-		panic(err)
-	}
-
-	http.Handle("/", http.FileServer(http.FS(rootDir)))
-	http.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
-		err := json.NewEncoder(w).Encode(map[string]any{
-			`ants`:    parser.Ants,
-			"start":   parser.Start.Id,
-			"end":     parser.End.Id,
-			"rooms":   parser.Rooms,
-			"tunnels": parser.Tunnels,
-			"turns":   turns,
-		})
-
-		if err != nil {
-			panic(err)
-		}
-	})
-
-	log.Fatalln(http.ListenAndServe(addr, nil))
 }

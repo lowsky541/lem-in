@@ -1,148 +1,57 @@
-import Graph from "graphology";
-import Sigma from 'sigma';
+import { LeminContext } from "./data";
 import "./main.scss";
 
-const DEFAULT_VERTEX_SIZE: number = 15;
-const DEFAULT_EDGE_SIZE: number = 5;
-
-type RoomId = number;
-
-interface Room {
-    id: number;
-    name: string;
-    x: number;
-    y: number;
-    isStart: boolean;
-    isEnd: boolean;
+declare global {
+    interface CanvasRenderingContext2D {
+        circle(x: number, y: number, radius: number): void;
+    }
 }
 
-interface Tunnel {
-    id: number;
-    distance: number;
-    from: RoomId;
-    to: RoomId;
-}
+CanvasRenderingContext2D.prototype.circle = function (this: CanvasRenderingContext2D, x: number, y: number, radius: number) {
+    return this.arc(x, y, radius, 0, 2 * Math.PI);
+};
 
-interface Move {
-    ant: number;
-    from: RoomId;
-    to: RoomId;
-}
+function draw(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, { rooms, tunnels, turns }: LeminContext) {
+    canvas.width = window.innerWidth, canvas.height = window.innerHeight;
 
-interface Turn {
-    moves: Array<Move>;
-}
-
-interface Data {
-    ants: number;
-    start: RoomId;
-    end: RoomId;
-    rooms: Array<Room>;
-    tunnels: Array<Tunnel>;
-    turns: Array<Turn>;
-}
-
-window.onload = async () => {
-    let currentTurn: number = 0;
-
-    const graph = new Graph({});
-    const sigmaContainer = document.querySelector("#sigma")! as HTMLDivElement;
-
-    const data: Data = await fetch("/data", {
-        method: "get",
-    }).then(res => res.json(), console.error);
-
-    const rooms = data.rooms;
-    const tunnels = data.tunnels;
-    const turns = data.turns;
-
-    rooms.forEach(room => {
-        graph.addNode(room.id, {
-            x: room.x,
-            y: room.y,
-            size: DEFAULT_VERTEX_SIZE,
-            label: room.name,
-            color: room.isStart ? "green" : room.isEnd ? "red" : "gray",
-        });
-    });
+    const firstRoom = rooms[0];
+    const highest = rooms.reduce((prev, curr) => {
+        return {
+            x1: Math.min(prev.x1, curr.x), x2: Math.max(prev.x2, curr.x),
+            y1: Math.min(prev.y1, curr.y), y2: Math.max(prev.y2, curr.y),
+        };
+    }, { x1: firstRoom.x, x2: firstRoom.x, y1: firstRoom.y, y2: firstRoom.y });
+    const scalingFactor = { x: canvas.clientWidth / (highest.x2 + highest.x1), y: canvas.clientHeight / (highest.y2 + highest.y1) };
 
     tunnels.forEach(tunnel => {
-        graph.addEdge(tunnel.from, tunnel.to, {
-            size: DEFAULT_EDGE_SIZE,
-            color: "magenta",
-            label: tunnel.distance.toFixed(2),
-        });
+        const from = rooms.find(r => r.id === tunnel.from)!;
+        const to = rooms.find(r => r.id === tunnel.to)!;
+
+        context.beginPath();
+        context.moveTo(from.x * scalingFactor.x, from.y * scalingFactor.y);
+        context.lineTo(to.x * scalingFactor.x, to.y * scalingFactor.y);
+        context.strokeStyle = 'grey';
+        context.stroke();
     });
 
-    const sigma = new Sigma(graph, sigmaContainer, {
-        renderEdgeLabels: true,
-        renderLabels: true,
+    rooms.forEach(room => {
+        context.beginPath();
+        context.circle(room.x * scalingFactor.x, room.y * scalingFactor.y, 10);
+        context.fillStyle = room.isStart ? "green" : room.isEnd ? "red" : "magenta",
+            context.fill();
     });
+}
 
-    const camera = sigma.getCamera();
-    camera.setState({ ratio: 1.5, x: camera.x, y: camera.y });
+function main(lemin: LeminContext) {
+    const canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
 
-    ///////////////////////////////////////////////////////////
+    const context = canvas?.getContext('2d');
+    if (context) draw(canvas, context, lemin);
+    else alert("Your browser doesn't seem to support canvas.");
+}
 
-    const currentTurnIndicator = document.querySelector(
-        "#controller-current-turn",
-    ) as HTMLSpanElement;
-
-    const nextTurnButton = document.querySelector(
-        "#controller-next-turn",
-    ) as HTMLAnchorElement;
-
-    const history = document.querySelector("#history") as HTMLOListElement;
-
-    const colorStack = [
-        "yellow",
-        "aqua",
-        "fuchsia",
-        "goldenrod",
-        "greenyellow",
-        "blue",
-    ];
-    let colorStackIndex = 0;
-
-    const colors = new Map<number, string>();
-
-    nextTurnButton.addEventListener("click", () => {
-        if (currentTurn + 1 === turns.length)
-            currentTurnIndicator.innerText =
-                (currentTurn + 1).toString() + " (end)";
-        else if (currentTurn + 1 < turns.length)
-            currentTurnIndicator.innerText = (currentTurn + 1).toString();
-        else return;
-
-        const turn = turns[currentTurn++];
-        let turnHistoryList = document.createElement("ul");
-
-        const turnColor = colorStack[colorStackIndex++ % colorStack.length];
-        turn.moves.forEach(m => {
-            let color = colors.get(m.ant);
-            if (color === undefined) {
-                colors.set(m.ant, turnColor);
-                color = turnColor;
-            }
-
-            if (m.to !== data.end) {
-                graph.setNodeAttribute(m.to, "color", color);
-            }
-
-            if (m.from !== data.start) {
-                graph.setNodeAttribute(m.from, "color", "gray");
-            }
-
-            const turnHistoryItem = document.createElement("li");
-            turnHistoryItem.innerText = `${m.ant} moved from ${m.from} to ${
-                m.to
-            }${m.to === data.end ? " (out)" : ""}`;
-            turnHistoryList.appendChild(turnHistoryItem);
-        });
-
-        const turnHistoryWrapper = document.createElement("li");
-        turnHistoryWrapper.style.color = turnColor;
-        turnHistoryWrapper.appendChild(turnHistoryList);
-        history.append(turnHistoryWrapper);
-    });
-};
+window.onload = async () => fetch("/context")
+    .then(r => r.json())
+    .then(r => main(r))
+    .catch(alert);
