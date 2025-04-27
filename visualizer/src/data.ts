@@ -1,10 +1,5 @@
 export type RoomId = number;
 
-export interface Vec2 {
-    x: number;
-    y: number;
-}
-
 export interface Bounds {
     top: number;
     right: number;

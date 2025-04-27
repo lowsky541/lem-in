@@ -3,7 +3,7 @@ import "./main.scss";
 
 const settings = {
   zoom: 1.0,
-  nodeRadius: 5,
+  nodeRadius: 15,
   lineThickness: 3,
   colors: {
     lines: 'grey',
@@ -27,14 +27,16 @@ function getBounds(rooms: Array<IRoom>): Bounds {
   }, initial);
 }
 
-function draw(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, { rooms, tunnels }: LeminContext) {
+function draw(time: number, canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, lemin: LeminContext) {
   canvas.width = window.innerWidth, canvas.height = window.innerHeight;
 
+  const { rooms, tunnels } = lemin;
   const bounds = getBounds(rooms);
+
   const scalingFactors = {
     x: canvas.clientWidth / (bounds.right + bounds.left + settings.zoom),
     y: canvas.clientHeight / (bounds.bottom + bounds.top + settings.zoom),
-  } as Vec2;
+  };
 
   tunnels.forEach(tunnel => {
     context.beginPath();
@@ -50,10 +52,13 @@ function draw(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, { ro
     context.arc((settings.zoom / 2 + room.x) * scalingFactors.x, (settings.zoom / 2 + room.y) * scalingFactors.y, settings.nodeRadius, 0, Math.PI * 2);
     context.fillStyle = room.isStart ? settings.colors.start : room.isEnd ? settings.colors.end : settings.colors.normal;
     context.fill();
+    context.save();
   });
+
+  window.requestAnimationFrame(time => draw(time, canvas, context, lemin));
 }
 
-function main(lemin: LeminContext) {
+function run(lemin: LeminContext) {
   const canvas = document.createElement('canvas');
   document.body.appendChild(canvas);
 
@@ -63,7 +68,7 @@ function main(lemin: LeminContext) {
     return;
   }
 
-  draw(canvas, context, lemin);
+  window.requestAnimationFrame(time => draw(time, canvas, context, lemin));
 }
 
 window.onload = async () => fetch("/context")
@@ -71,6 +76,5 @@ window.onload = async () => fetch("/context")
     if (!response.ok) throw new Error(response.statusText);
     else return response.json();
   })
-  .then(transform)
-  .then(main)
+  .then(transform).then(run)
   .catch(alert);

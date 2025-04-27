@@ -82,8 +82,6 @@ func main() {
 		}
 	}
 
-	fmt.Println("== visualizer", visualize)
-
 	start := time.Now()
 	context := lemin.Context{}
 	if err := context.Parse(filename); err != nil {

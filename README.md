@@ -1,9 +1,11 @@
-lem-in
+Lem-in
 ------
 
-A program that takes a file representing an ant farm consisting of rooms and tunnels (nodes and edges) and tries to move **n** ant(s) from the start room to the end room with the least amount of turns.
+Lem-in is a program that takes a file describing an ant farm—defined by a number of ants, rooms, and tunnels—and calculates the most efficient way to move all ants from the start room to the end room in the fewest possible turns. Each tunnel can be used only once per turn, and rooms (except the start and end) can hold only one ant at a time.
 
-There are some constraints :
+- The program is written in Go, with core logic located in the `pkg/` directory.
+- The built-in visualizer runs as an HTTP server, with frontend assets and scripts located in the `visualizer/` directory.
+- Sample files describing various ant farms are available in the `samples/` directory.
+- Finally, tests are defined in the `tests/` directory.
 
-  - A tunnel can only be used once per turn.
-  - A room can be occupied by only one ant at a time.
+To build the project, ensure that you have `npm`, `make`, and Go installed, then simply run `make`.
