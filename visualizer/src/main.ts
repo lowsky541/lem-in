@@ -1,4 +1,4 @@
-import { Bounds, ILeminContext, IRoom, LeminContext, transform, Vec2 } from "./data";
+import { Bounds, ILeminContext, IRoom, LeminContext, transform } from "./data";
 import "./main.scss";
 
 const settings = {
@@ -6,16 +6,21 @@ const settings = {
   nodeRadius: 15,
   lineThickness: 3,
   colors: {
-    lines: 'grey',
-    normal: 'blue',
-    start: 'green',
-    end: 'red',
-  }
+    lines: "grey",
+    normal: "blue",
+    start: "green",
+    end: "red",
+  },
 };
 
 function getBounds(rooms: Array<IRoom>): Bounds {
   const [{ x: initialX, y: initialY }] = rooms;
-  const initial = { left: initialX, right: initialX, top: initialY, bottom: initialY };
+  const initial = {
+    left: initialX,
+    right: initialX,
+    top: initialY,
+    bottom: initialY,
+  };
 
   return rooms.reduce((prev, curr) => {
     return {
@@ -27,8 +32,13 @@ function getBounds(rooms: Array<IRoom>): Bounds {
   }, initial);
 }
 
-function draw(time: number, canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, lemin: LeminContext) {
-  canvas.width = window.innerWidth, canvas.height = window.innerHeight;
+function draw(
+  time: number,
+  canvas: HTMLCanvasElement,
+  context: CanvasRenderingContext2D,
+  lemin: LeminContext
+) {
+  (canvas.width = window.innerWidth), (canvas.height = window.innerHeight);
 
   const { rooms, tunnels } = lemin;
   const bounds = getBounds(rooms);
@@ -40,8 +50,14 @@ function draw(time: number, canvas: HTMLCanvasElement, context: CanvasRenderingC
 
   tunnels.forEach(tunnel => {
     context.beginPath();
-    context.moveTo((settings.zoom / 2 + tunnel.from.x) * scalingFactors.x, (settings.zoom / 2 + tunnel.from.y) * scalingFactors.y);
-    context.lineTo((settings.zoom / 2 + tunnel.to.x) * scalingFactors.x, (settings.zoom / 2 + tunnel.to.y) * scalingFactors.y);
+    context.moveTo(
+      (settings.zoom / 2 + tunnel.from.x) * scalingFactors.x,
+      (settings.zoom / 2 + tunnel.from.y) * scalingFactors.y
+    );
+    context.lineTo(
+      (settings.zoom / 2 + tunnel.to.x) * scalingFactors.x,
+      (settings.zoom / 2 + tunnel.to.y) * scalingFactors.y
+    );
     context.lineWidth = settings.lineThickness;
     context.strokeStyle = settings.colors.lines;
     context.stroke();
@@ -49,8 +65,18 @@ function draw(time: number, canvas: HTMLCanvasElement, context: CanvasRenderingC
 
   rooms.forEach(room => {
     context.beginPath();
-    context.arc((settings.zoom / 2 + room.x) * scalingFactors.x, (settings.zoom / 2 + room.y) * scalingFactors.y, settings.nodeRadius, 0, Math.PI * 2);
-    context.fillStyle = room.isStart ? settings.colors.start : room.isEnd ? settings.colors.end : settings.colors.normal;
+    context.arc(
+      (settings.zoom / 2 + room.x) * scalingFactors.x,
+      (settings.zoom / 2 + room.y) * scalingFactors.y,
+      settings.nodeRadius,
+      0,
+      Math.PI * 2
+    );
+    context.fillStyle = room.isStart
+      ? settings.colors.start
+      : room.isEnd
+      ? settings.colors.end
+      : settings.colors.normal;
     context.fill();
     context.save();
   });
@@ -59,10 +85,10 @@ function draw(time: number, canvas: HTMLCanvasElement, context: CanvasRenderingC
 }
 
 function run(lemin: LeminContext) {
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   document.body.appendChild(canvas);
 
-  const context = canvas?.getContext('2d');
+  const context = canvas?.getContext("2d");
   if (!context) {
     alert("Your browser doesn't seem to support canvas.");
     return;
@@ -71,10 +97,12 @@ function run(lemin: LeminContext) {
   window.requestAnimationFrame(time => draw(time, canvas, context, lemin));
 }
 
-window.onload = async () => fetch("/context")
-  .then((response): Promise<ILeminContext> => {
-    if (!response.ok) throw new Error(response.statusText);
-    else return response.json();
-  })
-  .then(transform).then(run)
-  .catch(alert);
+window.onload = async () =>
+  fetch("/context")
+    .then((response): Promise<ILeminContext> => {
+      if (!response.ok) throw new Error(response.statusText);
+      else return response.json();
+    })
+    .then(transform)
+    .then(run)
+    .catch(alert);
