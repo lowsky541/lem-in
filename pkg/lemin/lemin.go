@@ -1,40 +1,22 @@
 package lemin
 
-import (
-	"fmt"
-)
-
-const PATH_REPULSION = 999
-
-func NewUsedTunnelsMap(ctx *Context) map[*Tunnel]bool {
-	out := map[*Tunnel]bool{}
-	for _, t := range ctx.Tunnels {
-		out[t] = false
-	}
-	return out
-}
-
-func NewUsedRoomsMap(ctx *Context) map[*Room]bool {
-	out := map[*Room]bool{}
-	for _, r := range ctx.Rooms {
-		out[r] = false
-	}
-	return out
-}
-
-func IsSane(ctx *Context) bool {
-	path := Dijkstra(ctx, ctx.Start, ctx.End, nil, nil)
+func IsSane(farm *Farm) bool {
+	path := dijkstra(farm, farm.Start, farm.End, nil, nil)
 	return len(path) != 0
 }
 
-func Lemin(ctx *Context) []Turn {
+func Lemin(farm *Farm) ([]Turn, error) {
+	if !IsSane(farm) {
+		return nil, ErrInsaneFarm
+	}
+
 	turns := []Turn{}
-	ants := createAnts(ctx)
+	ants := createAnts(farm)
 
 	currentTurn := 1
 
 	arrived := 0
-	total := ctx.Ants
+	total := farm.Ants
 
 	lastHasWaited := false
 
@@ -48,7 +30,7 @@ func Lemin(ctx *Context) []Turn {
 	// then the path-finder will fail even if the ant
 	// can go one room forward.
 
-	usedRoomsMap := NewUsedRoomsMap(ctx)
+	usedRoomsMap := constructMap(farm.Rooms, false)
 
 	for arrived != total {
 
@@ -66,31 +48,31 @@ func Lemin(ctx *Context) []Turn {
 		ignoredRooms := map[*Room]bool{}
 
 		// Keep track of which tunnel has been used.
-		usedTunnelsMap := NewUsedTunnelsMap(ctx)
+		usedTunnelsMap := constructMap(farm.Tunnels, false)
 
 		for currentAnt := 0; currentAnt != total; {
 			// Skip ants that are already at end
 			ant := ants[currentAnt]
-			if ant.Finished {
+			if ant.finished {
 				currentAnt++
 				continue
 			}
 
-			if currentAnt == total-1 && total-arrived <= 2 && ant.Location == ctx.Start && !lastHasWaited {
+			if currentAnt == total-1 && total-arrived <= 2 && ant.location == farm.Start && !lastHasWaited {
 				// Handle an exception,
 				// if the ant is the last one, make it wait for the shortest path to free
 				// I know, that's not really optimized, barely the same code two lines under...
 				lastHasWaited = true
 
-				next, tunnel := ant.NextMove(ctx, ctx.End, nil, nil)
+				next, tunnel := ant.nextMove(farm, farm.End, nil, nil)
 				if next == nil || usedTunnelsMap[tunnel] || usedRoomsMap[next] {
 					break
 				}
 			}
 
 			// Declaration of variables mainly for readability purpose
-			last := ant.Location
-			next, tunnel := ant.NextMove(ctx, ctx.End, ignoredRooms, ignoredTunnels)
+			last := ant.location
+			next, tunnel := ant.nextMove(farm, farm.End, ignoredRooms, ignoredTunnels)
 
 			if next == nil {
 				// No more paths, restart path-finding
@@ -107,21 +89,20 @@ func Lemin(ctx *Context) []Turn {
 			}
 
 			// Add the move to the current turn
-			turn.Moves = append(turn.Moves, Move{
-				Ant:  ant.Id + 1,
-				From: last.Id,
-				To:   next.Id,
+			turn = append(turn, Move{
+				Ant:  ant.id + 1,
+				From: last,
+				To:   next,
 			})
-			fmt.Printf("L%d-%s ", ant.Id+1, next.Name)
 
 			// Release the room usage
 			usedRoomsMap[last] = false
 
 			// Move the ant
-			ant.Location = next
+			ant.location = next
 
 			// Forbid the ant to go back
-			ant.IgnoredRooms[last] = true
+			ant.ignoredRooms[last] = true
 
 			// Mark this tunnel and room as used
 			usedTunnelsMap[tunnel] = true
@@ -132,7 +113,7 @@ func Lemin(ctx *Context) []Turn {
 			if next.IsEnd {
 				// Mark the ant as arrived: skip it for the future turns
 				arrived++
-				ant.Finished = true
+				ant.finished = true
 			}
 
 			// We are going to work on the next ant,
@@ -145,12 +126,19 @@ func Lemin(ctx *Context) []Turn {
 			currentAnt++
 		}
 
-		fmt.Println()
-
 		// Mark the turn as done and append it to the list of turns
 		currentTurn++
 		turns = append(turns, turn)
 	}
 
-	return turns
+	return turns, nil
+}
+
+// Utility for building maps with all elements of arr as keys and val as value.
+func constructMap[Tk comparable, Tv any](arr []Tk, val Tv) map[Tk]Tv {
+	out := map[Tk]Tv{}
+	for _, e := range arr {
+		out[e] = val
+	}
+	return out
 }

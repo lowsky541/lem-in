@@ -21,7 +21,7 @@ help:
 
 .PHONY: test
 test:
-	@go test  ./...
+	@go test -v  ./...
 
 .PHONY: build
 build: build-visualizer build-lemin

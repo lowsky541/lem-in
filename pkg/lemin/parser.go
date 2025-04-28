@@ -2,7 +2,8 @@ package lemin
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
+	util "lemin/pkg/util"
 	"math"
 	"os"
 	"regexp"
@@ -10,34 +11,29 @@ import (
 	"strings"
 )
 
-// Describe all the structures of a parsed input file.
-type Context struct {
-	Ants    int
-	Start   *Room
-	End     *Room
-	Rooms   []*Room
-	Tunnels []*Tunnel
-}
+var ErrInvalidFormat = errors.New("invalid lem-in format")
+var ErrTunnelLoop = errors.New("invalid tunnel, was linked to itself")
+var ErrRoomDuplication = errors.New("room duplication was found in input")
+var ErrUnknownRoom = errors.New("unknown room when parsing tunnels")
+var ErrCommandIsNotAllowed = errors.New("invalid command, only 'start' and 'end' are allowed")
+var ErrInvalidAntCount = errors.New("invalid ant count, count must be a non-zero positive integer")
+var ErrInsaneFarm = errors.New("no connection from start to end room")
 
-///////////////////////////////////////////////////////////////////////////////////////
-//                             Regular Expressions
-///////////////////////////////////////////////////////////////////////////////////////
+var regRoom = regexp.MustCompile(`^([^L]\w*)\s+(\d+)\s+(\d+)$`)
+var regTunnel = regexp.MustCompile(`^(\w+)\-(\w+)$`)
 
-var RegRoom = regexp.MustCompile(`^([^L]\w*)\s+(\d+)\s+(\d+)$`)
-var RegTunnel = regexp.MustCompile(`^(\w+)\-(\w+)$`)
-
-///////////////////////////////////////////////////////////////////////////////////////
-//                                 File parser
-///////////////////////////////////////////////////////////////////////////////////////
-
-// Open the file pointed by `filepath` scan and fill the context `p`.
-// You can think of the context as the graph.
-func (p *Context) Parse(filepath string) error {
+func Parse(filepath string) (*Farm, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer file.Close()
+
+	return ParseFromFile(file)
+}
+
+func ParseFromFile(file *os.File) (*Farm, error) {
+	var p *Farm = &Farm{}
 
 	scanner := bufio.NewScanner(file)
 
@@ -46,15 +42,15 @@ func (p *Context) Parse(filepath string) error {
 		antsString := scanner.Text()
 		ants, err := strconv.Atoi(antsString)
 		if err != nil || !(ants > 0) {
-			return ErrInvalidAntCount
+			return nil, ErrInvalidAntCount
 		}
 		p.Ants = ants
 	} else {
-		return ErrInvalidFormat
+		return nil, ErrInvalidFormat
 	}
 
-	var curRoomId uint = 0
-	var curTunnelId uint = 0
+	var curRoomId int = 0
+	var curTunnelId int = 0
 
 	// This is now the link section, no more rooms
 	pastRooms := false
@@ -81,7 +77,7 @@ func (p *Context) Parse(filepath string) error {
 				nextIsEnd = true
 				continue
 			} else {
-				return ErrCommandIsNotAllowed
+				return nil, ErrCommandIsNotAllowed
 			}
 		} else if strings.HasPrefix(line, "#") || line == "" {
 			// Allow blank lines without spaces and comments
@@ -89,17 +85,16 @@ func (p *Context) Parse(filepath string) error {
 		}
 
 		// Is the current line defining a room ?
-		roomMatch := RegRoom.FindStringSubmatch(line)
+		roomMatch := regRoom.FindStringSubmatch(line)
 		if roomMatch != nil && !pastRooms {
-
 			x, err := strconv.Atoi(roomMatch[2])
 			if err != nil {
-				return ErrInvalidFormat
+				return nil, ErrInvalidFormat
 			}
 
 			y, err := strconv.Atoi(roomMatch[3])
 			if err != nil {
-				return ErrInvalidFormat
+				return nil, ErrInvalidFormat
 			}
 
 			roomName := roomMatch[1]
@@ -115,7 +110,7 @@ func (p *Context) Parse(filepath string) error {
 
 			// Check for room duplication
 			if _, exist := rooms[roomName]; exist {
-				return ErrRoomDuplication
+				return nil, ErrRoomDuplication
 			}
 
 			rooms[roomName] = room
@@ -134,7 +129,7 @@ func (p *Context) Parse(filepath string) error {
 		}
 
 		// Is the current line defining a link ?
-		tunnelMatch := RegTunnel.FindStringSubmatch(line)
+		tunnelMatch := regTunnel.FindStringSubmatch(line)
 		if tunnelMatch != nil {
 			p1 := tunnelMatch[1]
 			p2 := tunnelMatch[2]
@@ -142,10 +137,10 @@ func (p *Context) Parse(filepath string) error {
 			room1, room1Exists := rooms[p1]
 			room2, room2Exists := rooms[p2]
 			if !room1Exists || !room2Exists {
-				return ErrUnknownRoom
+				return nil, ErrUnknownRoom
 			}
 
-			distance := Distance(room1, room2)
+			distance := distance(room1, room2)
 			tunnel := &Tunnel{
 				Id:       curTunnelId,
 				From:     room1,
@@ -166,48 +161,26 @@ func (p *Context) Parse(filepath string) error {
 
 		// This is neither a room nor a link
 		// What the hell is this trash ? Don't wanna know.
-		return ErrInvalidFormat
+		return nil, ErrInvalidFormat
 	}
 
 	// There was an error reading the file
 	if err := scanner.Err(); err != nil {
-		return err
+		return nil, err
 	}
 
 	// A ##start or a ##end hasn't a associated room
 	if nextIsStart || nextIsEnd {
-		return ErrInvalidFormat
+		return nil, ErrInvalidFormat
 	}
 
-	p.Rooms = MapValues(rooms)
+	p.Rooms = util.OnlyValues(rooms)
 	p.Tunnels = tunnels
 
-	return nil
+	return p, nil
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-//                                   Banner
-///////////////////////////////////////////////////////////////////////////////////////
-
-func (p *Context) PrintBanner() {
-	fmt.Println(p.Ants)
-	for _, r := range p.Rooms {
-		fmt.Printf("%s %v %v\n", r.Name, r.X, r.Y)
-	}
-
-	for _, t := range p.Tunnels {
-		fmt.Printf("%s-%s\n", t.From.Name, t.To.Name)
-	}
-
-	fmt.Println()
-}
-
-///////////////////////////////////////////////////////////////////////////////////////
-//                                   Utilities
-///////////////////////////////////////////////////////////////////////////////////////
-
-// The distance between two rooms
-func Distance(r1 *Room, r2 *Room) float64 {
+func distance(r1 *Room, r2 *Room) float64 {
 	var x = math.Pow(float64(r1.X-r2.X), 2)
 	var y = math.Pow(float64(r1.Y-r2.Y), 2)
 	return math.Sqrt(x + y)

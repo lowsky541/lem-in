@@ -5,7 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
-	lemin "lemin/pkg"
+	lemin "lemin/pkg/lemin"
+	util "lemin/pkg/util"
 	"net/http"
 	"os"
 	"strings"
@@ -21,7 +22,7 @@ func fatal(e error) {
 }
 
 func assetsFilesystem(assetsDir string) http.FileSystem {
-	if isEmpty(assetsDir) {
+	if util.IsEmpty(assetsDir) {
 		fsys, err := fs.Sub(assets, "visualizer/dist")
 		if err != nil {
 			panic(err)
@@ -32,12 +33,31 @@ func assetsFilesystem(assetsDir string) http.FileSystem {
 	}
 }
 
-func isEmpty(s string) bool {
-	return strings.TrimSpace(s) == ""
+func printFarm(farm *lemin.Farm) {
+	fmt.Println(farm.Ants)
+
+	for _, r := range farm.Rooms {
+		fmt.Printf("%s %d %d\n", r.Name, r.X, r.Y)
+	}
+
+	for _, t := range farm.Tunnels {
+		fmt.Printf("%s-%s\n", t.From.Name, t.To.Name)
+	}
+
+	fmt.Println()
+}
+
+func printTurns(turns []lemin.Turn) {
+	for _, turn := range turns {
+		for _, move := range turn {
+			fmt.Printf("L%d-%s ", move.Ant, move.To.Name)
+		}
+		fmt.Println()
+	}
 }
 
 func main() {
-	var fileInfo os.FileInfo
+	var fi os.FileInfo
 	var err error
 	var bind, assetsDir string
 	var visualize, port uint
@@ -58,53 +78,50 @@ func main() {
 		return
 	}
 
-	fileInfo, err = os.Stat(filename)
+	fi, err = os.Stat(filename)
 	if err != nil {
 		fatal(err)
 	}
 
-	if !fileInfo.Mode().IsRegular() {
+	if !fi.Mode().IsRegular() {
 		fatal(fmt.Errorf("%s: not a regular file", filename))
 	}
 
-	if !isEmpty(assetsDir) {
+	if !util.IsEmpty(assetsDir) {
 		// Doesn't make sense to set the assets dir without
 		// enabling the visualizer
 		visualize = 1
 
-		fileInfo, err = os.Stat(assetsDir)
+		fi, err = os.Stat(assetsDir)
 		if err != nil {
 			fatal(err)
 		}
 
-		if !fileInfo.IsDir() {
+		if !fi.IsDir() {
 			fatal(fmt.Errorf("%s: not a directory", assetsDir))
 		}
 	}
 
 	start := time.Now()
-	context := lemin.Context{}
-	if err := context.Parse(filename); err != nil {
+	farm, err := lemin.Parse(filename)
+	if err != nil {
 		fatal(err)
 	}
-	context.PrintBanner()
 
+	printFarm(farm)
 	fmt.Printf("Parsed input file in %v.\n", time.Since(start))
-	if visualize < 2 {
-		fmt.Println()
-	}
-
-	// Check if an ant can go from the start to the
-	// end node by running Dijkstra.
-	if visualize < 2 && !lemin.IsSane(&context) {
-		fatal(lemin.ErrInsaneGraph)
-	}
 
 	turns := []lemin.Turn{}
 	if visualize < 2 {
-		start = time.Now()
+		fmt.Println()
 
-		turns = lemin.Lemin(&context)
+		start = time.Now()
+		turns, err = lemin.Lemin(farm)
+		if err != nil {
+			fatal(err)
+		}
+
+		printTurns(turns)
 		fmt.Printf("\nFinished in %v and %d turns.\n", time.Since(start), len(turns))
 	}
 
@@ -113,6 +130,6 @@ func main() {
 		addr := fmt.Sprintf("%s:%d", bind, port)
 
 		fmt.Printf("\nAll done, will now serve at http://%s...\n", addr)
-		lemin.ServeVisualizer(fsys, &context, addr, turns)
+		lemin.ServeVisualizer(fsys, farm, addr, turns)
 	}
 }

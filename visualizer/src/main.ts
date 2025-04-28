@@ -38,7 +38,8 @@ function draw(
   context: CanvasRenderingContext2D,
   lemin: LeminContext
 ) {
-  (canvas.width = window.innerWidth), (canvas.height = window.innerHeight);
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
   const { rooms, tunnels } = lemin;
   const bounds = getBounds(rooms);

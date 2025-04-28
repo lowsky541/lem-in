@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func ServeVisualizer(assets http.FileSystem, parser *Context, addr string, turns []Turn) error {
+func ServeVisualizer(assets http.FileSystem, parser *Farm, addr string, turns []Turn) error {
 	srv := http.Server{Addr: addr}
 
 	http.Handle("/", http.FileServer(assets))
@@ -13,7 +13,7 @@ func ServeVisualizer(assets http.FileSystem, parser *Context, addr string, turns
 		w.Header().Set("Content-Type", "application/json")
 
 		err := json.NewEncoder(w).Encode(
-			ContextResponse{
+			Response{
 				Ants:    parser.Ants,
 				Start:   parser.Start.Id,
 				End:     parser.End.Id,
