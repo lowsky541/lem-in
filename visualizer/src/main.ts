@@ -1,19 +1,35 @@
-import { Bounds, ILeminContext, IRoom, LeminContext, transform } from "./data";
+import { Bounds, LeminFarm as Farm, Room, transform } from "./farm";
 import "./main.scss";
 
-const settings = {
-  zoom: 1.0,
-  nodeRadius: 15,
-  lineThickness: 3,
-  colors: {
-    lines: "grey",
-    normal: "blue",
-    start: "green",
-    end: "red",
-  },
-};
+interface AnimationState {
+  playing: boolean;
+  antId: number;
+}
 
-function getBounds(rooms: Array<IRoom>): Bounds {
+interface Visuals {
+  tunnels: {
+    thickness: number;
+    color: string;
+  };
+  rooms: {
+    radius: number;
+    color: string;
+    startColor: string;
+    endColor: string;
+  };
+}
+
+interface State {
+  farm: Farm;
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  zoom: number;
+  bounds: Bounds;
+  animation: AnimationState;
+  visuals: Visuals;
+}
+
+function getBounds(rooms: Array<Room>): Bounds {
   const [{ x: initialX, y: initialY }] = rooms;
   const initial = {
     left: initialX,
@@ -32,78 +48,71 @@ function getBounds(rooms: Array<IRoom>): Bounds {
   }, initial);
 }
 
-function draw(
-  time: number,
-  canvas: HTMLCanvasElement,
-  context: CanvasRenderingContext2D,
-  lemin: LeminContext
+function run(
+  time: DOMHighResTimeStamp,
+  farm: Farm,
+  cvs: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  bounds: Bounds
 ) {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const { rooms, tunnels } = farm;
 
-  const { rooms, tunnels } = lemin;
-  const bounds = getBounds(rooms);
+  // Resize the canvas
+  cvs.width = window.innerWidth;
+  cvs.height = window.innerHeight;
 
-  const scalingFactors = {
-    x: canvas.clientWidth / (bounds.right + bounds.left + settings.zoom),
-    y: canvas.clientHeight / (bounds.bottom + bounds.top + settings.zoom),
+  // Get the scaling factor
+  const factors = {
+    x: cvs.clientWidth / (bounds.right + bounds.left + state.zoom),
+    y: cvs.clientHeight / (bounds.bottom + bounds.top + state.zoom),
   };
 
+  // Scale helper
+  const scale = (v: number, factor: number) => (state.zoom / 2 + v) * factor;
+
   tunnels.forEach(tunnel => {
-    context.beginPath();
-    context.moveTo(
-      (settings.zoom / 2 + tunnel.from.x) * scalingFactors.x,
-      (settings.zoom / 2 + tunnel.from.y) * scalingFactors.y
+    ctx.beginPath();
+    ctx.moveTo(
+      scale(tunnel.from.x, factors.x),
+      scale(tunnel.from.y, factors.y)
     );
-    context.lineTo(
-      (settings.zoom / 2 + tunnel.to.x) * scalingFactors.x,
-      (settings.zoom / 2 + tunnel.to.y) * scalingFactors.y
-    );
-    context.lineWidth = settings.lineThickness;
-    context.strokeStyle = settings.colors.lines;
-    context.stroke();
+    ctx.lineTo(scale(tunnel.to.x, factors.x), scale(tunnel.to.y, factors.y));
+    ctx.lineWidth = lineThickness;
+    ctx.strokeStyle = colors.lines;
+    ctx.stroke();
   });
 
   rooms.forEach(room => {
-    context.beginPath();
-    context.arc(
-      (settings.zoom / 2 + room.x) * scalingFactors.x,
-      (settings.zoom / 2 + room.y) * scalingFactors.y,
-      settings.nodeRadius,
+    ctx.beginPath();
+    ctx.arc(
+      scale(room.x, factors.x),
+      scale(room.y, factors.y),
+      nodeRadius,
       0,
       Math.PI * 2
     );
-    context.fillStyle = room.isStart
-      ? settings.colors.start
-      : room.isEnd
-      ? settings.colors.end
-      : settings.colors.normal;
-    context.fill();
-    context.save();
+    ctx.fillStyle = roomColor(room);
+    ctx.fill();
+    ctx.save();
   });
 
-  window.requestAnimationFrame(time => draw(time, canvas, context, lemin));
+  window.requestAnimationFrame(time => run(time, farm, cvs, ctx, bounds));
 }
 
-function run(lemin: LeminContext) {
-  const canvas = document.createElement("canvas");
-  document.body.appendChild(canvas);
-
-  const context = canvas?.getContext("2d");
-  if (!context) {
-    alert("Your browser doesn't seem to support canvas.");
-    return;
-  }
-
-  window.requestAnimationFrame(time => draw(time, canvas, context, lemin));
+function install(farm: Farm) {
+  const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
+  const context = canvas.getContext("2d")!;
+  const bounds = getBounds(farm.rooms);
+  window.requestAnimationFrame(time => {
+    run(time, farm, canvas, context, bounds);
+  });
 }
 
 window.onload = async () =>
-  fetch("/context")
-    .then((response): Promise<ILeminContext> => {
+  fetch("/farm")
+    .then(response => {
       if (!response.ok) throw new Error(response.statusText);
       else return response.json();
     })
     .then(transform)
-    .then(run)
-    .catch(alert);
+    .then(install);

@@ -8,7 +8,7 @@ type Farm struct {
 	Tunnels []*Tunnel
 }
 
-type Response struct {
+type FarmResponse struct {
 	Ants    int       `json:"ants"`
 	Start   int       `json:"startId"`
 	End     int       `json:"endId"`

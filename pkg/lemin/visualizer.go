@@ -5,20 +5,20 @@ import (
 	"net/http"
 )
 
-func ServeVisualizer(assets http.FileSystem, parser *Farm, addr string, turns []Turn) error {
+func ServeVisualizer(assets http.FileSystem, farm *Farm, addr string, turns []Turn) error {
 	srv := http.Server{Addr: addr}
 
 	http.Handle("/", http.FileServer(assets))
-	http.HandleFunc("/context", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/farm", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		err := json.NewEncoder(w).Encode(
-			Response{
-				Ants:    parser.Ants,
-				Start:   parser.Start.Id,
-				End:     parser.End.Id,
-				Rooms:   parser.Rooms,
-				Tunnels: parser.Tunnels,
+			FarmResponse{
+				Ants:    farm.Ants,
+				Start:   farm.Start.Id,
+				End:     farm.End.Id,
+				Rooms:   farm.Rooms,
+				Tunnels: farm.Tunnels,
 				Turns:   turns,
 			},
 		)
