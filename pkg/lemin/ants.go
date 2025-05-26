@@ -1,5 +1,7 @@
 package lemin
 
+import "lemin/pkg/util"
+
 type ant struct {
 	id           int
 	location     *Room
@@ -13,7 +15,7 @@ func createAnts(farm *Farm) []*ant {
 		ants[i] = &ant{
 			id:           i,
 			location:     farm.Start,
-			ignoredRooms: constructMap(farm.Rooms, false),
+			ignoredRooms: util.MapOf(farm.Rooms, false),
 			finished:     false,
 		}
 	}

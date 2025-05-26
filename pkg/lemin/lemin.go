@@ -1,5 +1,7 @@
 package lemin
 
+import "lemin/pkg/util"
+
 func IsSane(farm *Farm) bool {
 	path := dijkstra(farm, farm.Start, farm.End, nil, nil)
 	return len(path) != 0
@@ -30,7 +32,7 @@ func Lemin(farm *Farm) ([]Turn, error) {
 	// then the path-finder will fail even if the ant
 	// can go one room forward.
 
-	usedRoomsMap := constructMap(farm.Rooms, false)
+	usedRoomsMap := util.MapOf(farm.Rooms, false)
 
 	for arrived != total {
 
@@ -48,7 +50,7 @@ func Lemin(farm *Farm) ([]Turn, error) {
 		ignoredRooms := map[*Room]bool{}
 
 		// Keep track of which tunnel has been used.
-		usedTunnelsMap := constructMap(farm.Tunnels, false)
+		usedTunnelsMap := util.MapOf(farm.Tunnels, false)
 
 		for currentAnt := 0; currentAnt != total; {
 			// Skip ants that are already at end
@@ -132,13 +134,4 @@ func Lemin(farm *Farm) ([]Turn, error) {
 	}
 
 	return turns, nil
-}
-
-// Utility for building maps with all elements of arr as keys and val as value.
-func constructMap[Tk comparable, Tv any](arr []Tk, val Tv) map[Tk]Tv {
-	out := map[Tk]Tv{}
-	for _, e := range arr {
-		out[e] = val
-	}
-	return out
 }

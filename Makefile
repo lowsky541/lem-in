@@ -7,7 +7,7 @@ EXECUTABLE ?= bin/lem-in
 NPM ?= npm
 TS_DIRS := visualizer/src
 VITE_CONFIGS := visualizer/tsconfig.json visualizer/vite.config.ts
-VITE_SOURCES := visualizer/index.html visualizer/src/main.scss
+VITE_SOURCES := visualizer/index.html visualizer/index.css
 VITE_SOURCES += $(shell find $(TS_DIRS) -type f -name '*.ts')
 VITE_DIST_FILES := visualizer/dist/index.html visualizer/dist/assets/index.css \
 	visualizer/dist/assets/index.js visualizer/dist/assets/index.js.map 

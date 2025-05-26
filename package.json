@@ -2,9 +2,11 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "sass": "^1.69.5",
     "terser": "^5.23.0",
     "typescript": "^5.0.4",
     "vite": "^6.3.3"
+  },
+  "dependencies": {
+    "threejs-math": "^0.147.0"
   }
 }

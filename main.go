@@ -62,10 +62,10 @@ func main() {
 	var bind, assetsDir string
 	var visualize, port uint
 
-	flag.UintVar(&visualize, "visualize", 0, "Enable visualizer HTTP server; 0 = disable, 1 = enable; 2 = enable without pathfinding")
+	flag.UintVar(&visualize, "vis", 0, "Enable visualizer HTTP server; 0 = disable, 1 = enable; 2 = enable without pathfinding")
 	flag.StringVar(&bind, "bind", "127.0.0.1", "Specify bind address for visualizer")
 	flag.UintVar(&port, "port", 3000, "Specify port for visualizer")
-	flag.StringVar(&assetsDir, "assets-dir", "", "Serve this directory instead of embedded assets; enables visualizer; useful for debugging")
+	flag.StringVar(&assetsDir, "assets-dir", "", "Serve this directory instead of the embedded assets")
 	flag.Usage = func() {
 		fmt.Println("usage: lem-in [OPTION] FILENAME")
 		flag.PrintDefaults()
@@ -79,11 +79,7 @@ func main() {
 	}
 
 	fi, err = os.Stat(filename)
-	if err != nil {
-		fatal(err)
-	}
-
-	if !fi.Mode().IsRegular() {
+	if err != nil || !fi.Mode().IsRegular() {
 		fatal(fmt.Errorf("%s: not a regular file", filename))
 	}
 
@@ -93,11 +89,7 @@ func main() {
 		visualize = 1
 
 		fi, err = os.Stat(assetsDir)
-		if err != nil {
-			fatal(err)
-		}
-
-		if !fi.IsDir() {
+		if err != nil || !fi.IsDir() {
 			fatal(fmt.Errorf("%s: not a directory", assetsDir))
 		}
 	}

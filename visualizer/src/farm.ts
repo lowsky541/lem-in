@@ -1,15 +1,10 @@
 export type RoomId = number;
 
-export interface Bounds {
+export interface FarmBounds {
   top: number;
   right: number;
   bottom: number;
   left: number;
-}
-
-export interface IFromTo {
-  to: Room;
-  from: Room;
 }
 
 export interface Room {
@@ -21,34 +16,26 @@ export interface Room {
   y: number;
 }
 
-export interface ITunnel {
+export interface Tunnel {
   id: number;
   distance: number;
+  from: Room;
   fromId: RoomId;
+  to: Room;
   toId: RoomId;
 }
 
-export type Tunnel = ITunnel & IFromTo;
-
-export interface IMove {
+export interface Move {
   ant: number;
+  from: Room;
   fromId: RoomId;
+  to: Room;
   toId: RoomId;
 }
 
-export type Move = IMove & IFromTo;
 export type Turn = Array<Move>;
 
-export interface ILeminFarm {
-  ants: number;
-  startId: RoomId;
-  endId: RoomId;
-  rooms: Array<Room>;
-  tunnels: Array<ITunnel>;
-  turns: Array<Turn>;
-}
-
-export interface LeminFarm {
+export interface Farm {
   ants: number;
   startId: RoomId;
   start: Room;
@@ -57,40 +44,61 @@ export interface LeminFarm {
   rooms: Array<Room>;
   tunnels: Array<Tunnel>;
   turns: Array<Turn>;
+  bounds: FarmBounds;
 }
 
 function findRoom(rooms: Room[], id: RoomId): Room {
   return rooms.find(room => room.id === id)!;
 }
 
-function concreteTunnel(rooms: Room[]) {
-  return (tunnel: ITunnel): Tunnel => ({
+function resolvedTunnel(rooms: Room[]) {
+  return (tunnel: Tunnel): Tunnel => ({
     ...tunnel,
     from: findRoom(rooms, tunnel.fromId),
     to: findRoom(rooms, tunnel.toId),
   });
 }
 
-function concreteMove(rooms: Room[]) {
-  return (move: IMove): Move => ({
+function resolvedMove(rooms: Room[]) {
+  return (move: Move): Move => ({
     ...move,
     from: findRoom(rooms, move.fromId),
     to: findRoom(rooms, move.toId),
   });
 }
 
-function concreteTurn(rooms: Room[]) {
-  return (turn: Turn): Turn => turn.map(concreteMove(rooms));
+function resolvedTurn(rooms: Room[]) {
+  return (turn: Turn): Turn => turn.map(resolvedMove(rooms));
 }
 
-export function transform(context: ILeminFarm): LeminFarm {
-  const { rooms, startId, endId } = context;
+function getBounds(rooms: Array<Room>): FarmBounds {
+  const [{ x: initialX, y: initialY }] = rooms;
+  const initial = {
+    left: initialX,
+    right: initialX,
+    top: initialY,
+    bottom: initialY,
+  };
+
+  return rooms.reduce((prev, curr) => {
+    return {
+      top: Math.min(prev.top, curr.y),
+      right: Math.max(prev.right, curr.x),
+      bottom: Math.max(prev.bottom, curr.y),
+      left: Math.min(prev.left, curr.x),
+    };
+  }, initial);
+}
+
+export function build(input: Farm): Farm {
+  const { rooms, startId, endId } = input;
 
   return {
-    ...context,
+    ...input,
     start: findRoom(rooms, startId),
     end: findRoom(rooms, endId),
-    tunnels: context.tunnels.map(concreteTunnel(rooms)),
-    turns: context.turns.map(concreteTurn(rooms)),
+    tunnels: input.tunnels.map(resolvedTunnel(rooms)),
+    turns: input.turns.map(resolvedTurn(rooms)),
+    bounds: getBounds(rooms),
   };
 }
