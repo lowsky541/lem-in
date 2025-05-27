@@ -92,9 +92,12 @@ func Lemin(farm *Farm) ([]Turn, error) {
 
 			// Add the move to the current turn
 			turn = append(turn, Move{
-				Ant:  ant.id + 1,
-				From: last,
-				To:   next,
+				Ant:      ant.id + 1,
+				FromId:   uint(last.Id),
+				From:     last,
+				ToId:     uint(next.Id),
+				To:       next,
+				TunnelId: uint(tunnel.Id),
 			})
 
 			// Release the room usage

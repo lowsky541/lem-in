@@ -8,9 +8,9 @@
     "alwaysStrict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "strictPropertyInitialization": false,
     "removeComments": true,
     "noImplicitAny": true,
-    "skipLibCheck": true,
     "lib": ["es2016", "dom", "dom.iterable"]
   }
 }

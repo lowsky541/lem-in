@@ -1,4 +1,5 @@
 export type RoomId = number;
+export type TunnelId = number;
 
 export interface FarmBounds {
   top: number;
@@ -31,6 +32,8 @@ export interface Move {
   fromId: RoomId;
   to: Room;
   toId: RoomId;
+  tunnel: Tunnel;
+  tunnelId: number;
 }
 
 export type Turn = Array<Move>;
@@ -51,6 +54,10 @@ function findRoom(rooms: Room[], id: RoomId): Room {
   return rooms.find(room => room.id === id)!;
 }
 
+function findTunnel(tunnels: Tunnel[], id: TunnelId): Tunnel {
+  return tunnels.find(tunnel => tunnel.id === id)!;
+}
+
 function resolvedTunnel(rooms: Room[]) {
   return (tunnel: Tunnel): Tunnel => ({
     ...tunnel,
@@ -59,16 +66,17 @@ function resolvedTunnel(rooms: Room[]) {
   });
 }
 
-function resolvedMove(rooms: Room[]) {
+function resolvedMove(rooms: Room[], tunnels: Tunnel[]) {
   return (move: Move): Move => ({
     ...move,
     from: findRoom(rooms, move.fromId),
     to: findRoom(rooms, move.toId),
+    tunnel: findTunnel(tunnels, move.tunnelId),
   });
 }
 
-function resolvedTurn(rooms: Room[]) {
-  return (turn: Turn): Turn => turn.map(resolvedMove(rooms));
+function resolvedTurn(rooms: Room[], tunnels: Tunnel[]) {
+  return (turn: Turn): Turn => turn.map(resolvedMove(rooms, tunnels));
 }
 
 function getBounds(rooms: Array<Room>): FarmBounds {
@@ -90,15 +98,15 @@ function getBounds(rooms: Array<Room>): FarmBounds {
   }, initial);
 }
 
-export function build(input: Farm): Farm {
-  const { rooms, startId, endId } = input;
+export function build(farm: Farm): Farm {
+  const { rooms, tunnels, startId, endId } = farm;
 
   return {
-    ...input,
+    ...farm,
     start: findRoom(rooms, startId),
     end: findRoom(rooms, endId),
-    tunnels: input.tunnels.map(resolvedTunnel(rooms)),
-    turns: input.turns.map(resolvedTurn(rooms)),
+    tunnels: farm.tunnels.map(resolvedTunnel(rooms)),
+    turns: farm.turns.map(resolvedTurn(rooms, tunnels)),
     bounds: getBounds(rooms),
   };
 }

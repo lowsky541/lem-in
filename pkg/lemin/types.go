@@ -20,9 +20,10 @@ type FarmResponse struct {
 type Turn = []Move
 
 type Move struct {
-	Ant    int   `json:"ant"`
-	FromId uint  `json:"fromId"`
-	From   *Room `json:"-"`
-	ToId   uint  `json:"toId"`
-	To     *Room `json:"-"`
+	Ant      int   `json:"ant"`
+	FromId   uint  `json:"fromId"`
+	From     *Room `json:"-"`
+	ToId     uint  `json:"toId"`
+	To       *Room `json:"-"`
+	TunnelId uint  `json:"tunnelId"`
 }

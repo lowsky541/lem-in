@@ -1,7 +1,8 @@
 import { Vector2 } from "threejs-math";
-import { Farm, FarmBounds } from "./farm";
+import { Farm, FarmBounds, Turn } from "./farm";
 
 export interface Settings {
+  speed: number;
   zoom: number;
   antRadius: number;
   antColor: string;
@@ -13,68 +14,86 @@ export interface Settings {
   tunnelColor: string;
 }
 
+interface Interant {
+  a: Vector2;
+  b: Vector2;
+  t: number;
+}
+
 export class Lemin {
   settings: Settings;
   farm: Farm;
-  farmBounds: FarmBounds;
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
-  turnIndex: number;
-  factors: Vector2;
+
+  private turnIndex: number;
+  private animTurn: Turn;
+  private scalingFactors: Vector2;
+  private start: number;
+  private isAnimating: boolean;
 
   constructor(
-    settings: Settings,
     farm: Farm,
+    settings: Settings,
     canvas: HTMLCanvasElement,
     context: CanvasRenderingContext2D
   ) {
-    this.settings = settings;
+    settings.zoom = settings.zoom || 1.0;
+    settings.speed = settings.speed || 1.0;
+
     this.farm = farm;
+    this.settings = settings;
     this.canvas = canvas;
     this.context = context;
     this.turnIndex = 0;
-    this.farmBounds = this.farm.bounds;
-
-    this.resize();
-    this.factors = this.updateFactors();
-    this.draw(0);
+    this.isAnimating = false;
+    this.draw();
 
     document.addEventListener("keydown", this.keydown.bind(this));
-    window.addEventListener("resize", this.resize.bind(this));
   }
 
   private scaledBy(value: number, factor: "x" | "y") {
     return (
       (this.settings.zoom / 2 + value) *
-      (factor == "x" ? this.factors.x : this.factors.y)
+      (factor == "x" ? this.scalingFactors.x : this.scalingFactors.y)
     );
   }
 
-  private updateFactors() {
-    this.factors = new Vector2(
-      this.canvas.clientWidth /
-        (this.farmBounds.right + this.farmBounds.left + this.settings.zoom),
-      this.canvas.clientHeight /
-        (this.farmBounds.bottom + this.farmBounds.top + this.settings.zoom)
-    );
-    return this.factors;
+  private animate() {
+    this.isAnimating = true;
+    this.start = new Date().getTime();
+
+    // Precalculations
+    const turn = this.farm.turns[this.turnIndex];
+    const longestDistance = turn.reduce((prev, current) => {
+      return prev.tunnel.distance > current.tunnel.distance ? prev : current;
+    }).tunnel.distance;
+
+    const ants: Array<Interant> = turn.map(({ ant, from, to }) => ({
+      a: new Vector2(from.x, from.y),
+      b: new Vector2(to.x, to.y),
+      t: 0.0,
+    }));
+  }
+
+  private requestFrame() {
+    return requestAnimationFrame(this.draw.bind(this));
   }
 
   private resize() {
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
-    this.updateFactors();
+    this.scalingFactors = new Vector2(
+      this.canvas.clientWidth /
+        (this.farm.bounds.right + this.farm.bounds.left + this.settings.zoom),
+      this.canvas.clientHeight /
+        (this.farm.bounds.bottom + this.farm.bounds.top + this.settings.zoom)
+    );
   }
 
-  animate() {
-    requestAnimationFrame(this.draw.bind(this));
-  }
-
-  private draw(time: DOMHighResTimeStamp) {
-    requestAnimationFrame(this.draw.bind(this));
-
+  private drawFarm() {
     const { rooms, tunnels } = this.farm;
-    const { context: ctx } = this;
+    const { context: ctx, settings: sts } = this;
 
     tunnels.forEach(tunnel => {
       ctx.beginPath();
@@ -86,8 +105,8 @@ export class Lemin {
         this.scaledBy(tunnel.to.x, "x"),
         this.scaledBy(tunnel.to.y, "y")
       );
-      ctx.lineWidth = this.settings.tunnelThickness;
-      ctx.strokeStyle = this.settings.tunnelColor;
+      ctx.lineWidth = sts.tunnelThickness;
+      ctx.strokeStyle = sts.tunnelColor;
       ctx.stroke();
     });
 
@@ -96,26 +115,54 @@ export class Lemin {
       ctx.arc(
         this.scaledBy(room.x, "x"),
         this.scaledBy(room.y, "y"),
-        this.settings.roomRadius,
+        sts.roomRadius,
         0,
         Math.PI * 2
       );
       ctx.fillStyle = room.isStart
-        ? this.settings.roomStartColor
+        ? sts.roomStartColor
         : room.isEnd
-        ? this.settings.roomEndColor
-        : this.settings.roomColor;
+        ? sts.roomEndColor
+        : sts.roomColor;
       ctx.fill();
     });
   }
 
-  keydown(ev: KeyboardEvent) {
+  private drawAnts() {
+    const turn = this.farm.turns[this.turnIndex];
+    const { context: ctx, settings: sts } = this;
+
+    turn.forEach(move => {
+      ctx.beginPath();
+      ctx.arc(
+        this.scaledBy(move.from.x, "x"),
+        this.scaledBy(move.from.y, "y"),
+        sts.antRadius,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = sts.antColor;
+      ctx.fill();
+    });
+  }
+
+  private draw(time?: DOMHighResTimeStamp) {
+    this.requestFrame();
+    this.resize();
+    this.drawFarm();
+    this.drawAnts();
+  }
+
+  private keydown(ev: KeyboardEvent) {
     const { key } = ev;
-    if (key === "KeyLeft") {
+    if (key === "ArrowLeft" && this.turnIndex - 1 >= 0) {
       this.turnIndex--;
-      this.animate();
-    } else if (key === "KeyRight") {
+    } else if (
+      key === "ArrowRight" &&
+      this.turnIndex + 1 < this.farm.turns.length
+    ) {
       this.turnIndex++;
+    } else if (key == "Space") {
       this.animate();
     }
   }

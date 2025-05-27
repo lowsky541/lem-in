@@ -3,8 +3,8 @@ import { Lemin, Settings } from "./lemin";
 
 const settings = {
   zoom: 1.0,
-  antRadius: 8,
-  antColor: "blue",
+  antRadius: 4,
+  antColor: "yellow",
   roomRadius: 12,
   roomColor: "magenta",
   roomStartColor: "green",
@@ -14,9 +14,10 @@ const settings = {
 } as Settings;
 
 function main(farm: Farm) {
+  console.log(farm);
   const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
   const context = canvas.getContext("2d")!;
-  new Lemin(settings, farm, canvas, context);
+  new Lemin(farm, settings, canvas, context);
 }
 
 addEventListener(
