@@ -16,9 +16,7 @@ type Room struct {
 type Tunnel struct {
 	Id       int     `json:"id"`
 	Distance float64 `json:"distance"`
-	FromId   int     `json:"fromId"`
 	From     *Room   `json:"-"`
-	ToId     int     `json:"toId"`
 	To       *Room   `json:"-"`
 }
 

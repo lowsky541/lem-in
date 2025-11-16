@@ -145,8 +145,6 @@ func ParseFromFile(file *os.File) (*Farm, error) {
 				Id:       curTunnelId,
 				From:     room1,
 				To:       room2,
-				FromId:   room1.Id,
-				ToId:     room2.Id,
 				Distance: distance,
 			}
 			curTunnelId++

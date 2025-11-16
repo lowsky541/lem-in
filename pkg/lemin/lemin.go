@@ -2,6 +2,23 @@ package lemin
 
 import "lemin/pkg/util"
 
+type Farm struct {
+	Ants    int
+	Start   *Room
+	End     *Room
+	Rooms   []*Room
+	Tunnels []*Tunnel
+}
+
+type Turn = []Move
+
+type Move struct {
+	Ant    int
+	From   *Room
+	To     *Room
+	Tunnel *Tunnel
+}
+
 func IsSane(farm *Farm) bool {
 	path := dijkstra(farm, farm.Start, farm.End, nil, nil)
 	return len(path) != 0
@@ -92,12 +109,10 @@ func Lemin(farm *Farm) ([]Turn, error) {
 
 			// Add the move to the current turn
 			turn = append(turn, Move{
-				Ant:      ant.id + 1,
-				FromId:   uint(last.Id),
-				From:     last,
-				ToId:     uint(next.Id),
-				To:       next,
-				TunnelId: uint(tunnel.Id),
+				Ant:    ant.id + 1,
+				From:   last,
+				To:     next,
+				Tunnel: tunnel,
 			})
 
 			// Release the room usage

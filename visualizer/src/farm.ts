@@ -101,6 +101,8 @@ function getBounds(rooms: Array<Room>): FarmBounds {
 export function build(farm: Farm): Farm {
   const { rooms, tunnels, startId, endId } = farm;
 
+  console.log("build");
+
   return {
     ...farm,
     start: findRoom(rooms, startId),

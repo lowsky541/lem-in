@@ -1,23 +1,27 @@
 import { Farm, build } from "./farm";
-import { Lemin, Settings } from "./lemin";
+import { Visualizer, Settings } from "./visualizer";
 
-const settings = {
-  zoom: 1.0,
-  antRadius: 4,
-  antColor: "yellow",
-  roomRadius: 12,
-  roomColor: "magenta",
-  roomStartColor: "green",
-  roomEndColor: "red",
-  tunnelThickness: 2,
-  tunnelColor: "grey",
-} as Settings;
+let visualizer: Visualizer | null = null;
 
 function main(farm: Farm) {
-  console.log(farm);
   const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
   const context = canvas.getContext("2d")!;
-  new Lemin(farm, settings, canvas, context);
+  visualizer = new Visualizer(
+    {
+      zoom: 1.0,
+      antRadius: 4,
+      antColor: "yellow",
+      roomRadius: 12,
+      roomColor: "magenta",
+      roomStartColor: "green",
+      roomEndColor: "red",
+      tunnelThickness: 2,
+      tunnelColor: "grey",
+    } as Settings,
+    farm,
+    canvas,
+    context
+  );
 }
 
 addEventListener(
@@ -30,6 +34,6 @@ addEventListener(
       })
       .then(build)
       .then(main)
-      .catch(alert),
+      .catch(console.log),
   { once: true }
 );
