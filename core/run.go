@@ -5,48 +5,45 @@ import (
 )
 
 type Result struct {
-	// Both are in nanoseconds
-	ParseTime       time.Duration
+	// Nanoseconds taken for parsing
+	ParseTime time.Duration
+	// Nanoseconds taken for pathfinding
 	PathfindingTime time.Duration
 	TurnCount       int
 	Farm            *Farm
 	Turns           []Turn
 }
 
+// Run parses the provided farm description and executes the
+// pathfinding algorithm.
+//
+// It returns a Result containing the parsed farm, computed turns,
+// and timing information for parsing and pathfinding.
+//
+// If parsing fails, the returned Result contains only ParseTime.
+// If pathfinding fails, the returned Result contains the parsed
+// Farm and timing information up to that point.
 func Run(farmDesc string) (*Result, error) {
+	res := &Result{}
+
 	start := time.Now()
 	farm, err := Parse(farmDesc)
-	parseTime := time.Since(start)
+	res.ParseTime = time.Since(start)
 
 	if err != nil {
-		return &Result{
-			ParseTime:       parseTime,
-			PathfindingTime: 0,
-			TurnCount:       0,
-			Farm:            nil,
-			Turns:           nil,
-		}, err
+		return res, err
 	}
+	res.Farm = farm
 
 	start = time.Now()
 	turns, err := Lemin(farm)
-	pathfindingTime := time.Since(start)
+	res.PathfindingTime = time.Since(start)
 
 	if err != nil {
-		return &Result{
-			ParseTime:       parseTime,
-			PathfindingTime: pathfindingTime,
-			TurnCount:       0,
-			Farm:            farm,
-			Turns:           nil,
-		}, err
+		return res, err
 	}
+	res.Turns = turns
+	res.TurnCount = len(turns)
 
-	return &Result{
-		ParseTime:       parseTime,
-		PathfindingTime: pathfindingTime,
-		TurnCount:       len(turns),
-		Farm:            farm,
-		Turns:           turns,
-	}, nil
+	return res, nil
 }

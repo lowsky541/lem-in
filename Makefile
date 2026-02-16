@@ -1,24 +1,56 @@
-GO ?= go
-GO_DIRS := core
-GO_SOURCES := $(shell find $(GO_DIRS) -type f -name '*.go')
 
+GO ?= go
 BIN_DIR := bin
 
+GO_DIRS := core util
+GO_SOURCES := $(shell find $(GO_DIRS) -type f -name '*.go')
+
+# WASM target
+WASM_MAIN := wasm/main.go
+WASM_OUT := $(BIN_DIR)/lem-in.wasm
+
+# CLI target
+CLI_MAIN := cli/main.go
+CLI_OUT := $(BIN_DIR)/lem-in
+
+# ----------------------
+# Default target
+# ----------------------
 .PHONY: all
 all: build
 
+# ----------------------
+# Test
+# ----------------------
 .PHONY: test
 test:
-	@$(GO) test -v ./tests/...
+	$(GO) test -v ./tests/...
 
+# ----------------------
+# CLI Build (default)
+# ----------------------
 .PHONY: build
-build: bin/lem-in
+build: $(CLI_OUT)
 
+$(CLI_OUT): $(GO_SOURCES) $(CLI_MAIN) | $(BIN_DIR)
+	$(GO) build -o $@ $(CLI_MAIN)
+
+# ----------------------
+# WASM build
+# ----------------------
 .PHONY: build-wasm
-build-wasm: bin/lem-in.wasm
+build-wasm: $(WASM_OUT)
 
-bin/lem-in.wasm: $(GO_SOURCES) wasm/main.go
-	GOOS=js GOARCH=wasm $(GO) build -o=$@ wasm/main.go
+$(WASM_OUT): $(GO_SOURCES) $(WASM_MAIN) | $(BIN_DIR)
+	GOOS=js GOARCH=wasm $(GO) build -o $@ $(WASM_MAIN)
 
-bin/lem-in: $(GO_SOURCES) cli/main.go
-	$(GO) build -o=$@ cli/main.go
+# ----------------------
+# Clean
+# ----------------------
+.PHONY: clean
+clean:
+	rm -rf $(WASM_OUT) $(CLI_OUT)
+
+# Create bin directory if it doesn't exist
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)

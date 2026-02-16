@@ -9,6 +9,7 @@ type ant struct {
 	ignoredRooms RoomStates
 }
 
+// Create all the ants as objects with their specific state.
 func createAnts(farm *Farm) []*ant {
 	ants := make([]*ant, farm.Ants)
 	for i := 0; i < len(ants); i++ {

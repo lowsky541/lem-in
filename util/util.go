@@ -2,7 +2,7 @@ package util
 
 import "strings"
 
-// Check if a string is really empty by trimming spaces.
+// Check if a string `s` is really empty by trimming spaces.
 func IsEmpty(s string) bool {
 	return strings.TrimSpace(s) == ""
 }
