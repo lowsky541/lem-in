@@ -11,6 +11,7 @@
     "strictPropertyInitialization": false,
     "removeComments": true,
     "noImplicitAny": true,
+    "jsx": "react-jsx",
     "lib": ["es2016", "dom", "dom.iterable"]
   }
 }

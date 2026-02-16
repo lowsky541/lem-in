@@ -1,114 +1,92 @@
-export type RoomId = number;
-export type TunnelId = number;
-
-export interface FarmBounds {
-  top: number;
-  right: number;
-  bottom: number;
+interface Bounds {
   left: number;
+  right: number;
+  top: number;
+  bottom: number;
 }
 
-export interface Room {
+interface Room {
   id: number;
   name: string;
-  isStart: boolean;
-  isEnd: boolean;
   x: number;
   y: number;
+  isStart: boolean;
+  isEnd: boolean;
 }
 
-export interface Tunnel {
+interface Tunnel {
   id: number;
   distance: number;
-  from: Room;
-  fromId: RoomId;
-  to: Room;
-  toId: RoomId;
 }
 
-export interface Move {
-  ant: number;
-  from: Room;
-  fromId: RoomId;
-  to: Room;
-  toId: RoomId;
-  tunnel: Tunnel;
-  tunnelId: number;
-}
+type Rooms = { [key: string]: Room };
+type Tunnels = { [key: string]: Tunnel };
 
-export type Turn = Array<Move>;
-
-export interface Farm {
+interface Response {
   ants: number;
-  startId: RoomId;
-  start: Room;
-  endId: RoomId;
-  end: Room;
-  rooms: Array<Room>;
-  tunnels: Array<Tunnel>;
-  turns: Array<Turn>;
-  bounds: FarmBounds;
+  start: string;
+  end: string;
+  rooms: Rooms;
+  tunnels: Tunnels;
 }
 
-function findRoom(rooms: Room[], id: RoomId): Room {
-  return rooms.find(room => room.id === id)!;
-}
+export class Farm {
+  private _ants: number;
+  private _rooms: Rooms;
+  private _start: Room;
+  private _end: Room;
+  private _tunnels: Tunnels;
 
-function findTunnel(tunnels: Tunnel[], id: TunnelId): Tunnel {
-  return tunnels.find(tunnel => tunnel.id === id)!;
-}
+  constructor(response: Response) {
+    this._ants = response.ants;
+    this._rooms = response.rooms;
+    this._start = response.rooms[response.start];
+    this._end = response.rooms[response.end];
+    this._tunnels = response.tunnels;
+  }
 
-function resolvedTunnel(rooms: Room[]) {
-  return (tunnel: Tunnel): Tunnel => ({
-    ...tunnel,
-    from: findRoom(rooms, tunnel.fromId),
-    to: findRoom(rooms, tunnel.toId),
-  });
-}
+  public get bounds(): Bounds {
+    // Get x and y coordinates of the first room
+    const [{ x: firstRoomX, y: firstRoomY }] = this.rooms;
 
-function resolvedMove(rooms: Room[], tunnels: Tunnel[]) {
-  return (move: Move): Move => ({
-    ...move,
-    from: findRoom(rooms, move.fromId),
-    to: findRoom(rooms, move.toId),
-    tunnel: findTunnel(tunnels, move.tunnelId),
-  });
-}
-
-function resolvedTurn(rooms: Room[], tunnels: Tunnel[]) {
-  return (turn: Turn): Turn => turn.map(resolvedMove(rooms, tunnels));
-}
-
-function getBounds(rooms: Array<Room>): FarmBounds {
-  const [{ x: initialX, y: initialY }] = rooms;
-  const initial = {
-    left: initialX,
-    right: initialX,
-    top: initialY,
-    bottom: initialY,
-  };
-
-  return rooms.reduce((prev, curr) => {
-    return {
-      top: Math.min(prev.top, curr.y),
-      right: Math.max(prev.right, curr.x),
-      bottom: Math.max(prev.bottom, curr.y),
-      left: Math.min(prev.left, curr.x),
+    let bounds = {
+      left: firstRoomX,
+      right: firstRoomX,
+      top: firstRoomY,
+      bottom: firstRoomY,
     };
-  }, initial);
+
+    this.rooms.forEach(room => {
+      bounds = {
+        top: Math.min(bounds.top, room.y),
+        right: Math.max(bounds.right, room.x),
+        bottom: Math.max(bounds.bottom, room.y),
+        left: Math.min(bounds.left, room.x),
+      };
+    });
+
+    return bounds;
+  }
+
+  public get ants(): number {
+    return this._ants;
+  }
+
+  public get start(): Room {
+    return this._start;
+  }
+
+  public get end(): Room {
+    return this._end;
+  }
+
+  public get rooms(): Array<Room> {
+    return Object.values(this._rooms);
+  }
+
+  public get tunnels(): Array<Tunnel> {
+    return Object.values(this._tunnels);
+  }
 }
 
-export function build(farm: Farm): Farm {
-  const { rooms, tunnels, startId, endId } = farm;
-
-  console.log("build");
-
-  return {
-    ...farm,
-    start: findRoom(rooms, startId),
-    end: findRoom(rooms, endId),
-    tunnels: farm.tunnels.map(resolvedTunnel(rooms)),
-    turns: farm.turns.map(resolvedTurn(rooms, tunnels)),
-    bounds: getBounds(rooms),
-  };
-}
+function getFarmData() {}
