@@ -1,47 +1,24 @@
 GO ?= go
-GO_DIRS := pkg
-GO_SOURCES := $(wildcard *.go)
-GO_SOURCES += $(shell find $(GO_DIRS) -type f -name '*.go')
-EXECUTABLE ?= bin/lem-in
+GO_DIRS := core
+GO_SOURCES := $(shell find $(GO_DIRS) -type f -name '*.go')
 
-NPM ?= npm
-TS_DIRS := visualizer/src
-VITE_CONFIGS := visualizer/tsconfig.json visualizer/vite.config.ts
-VITE_SOURCES := visualizer/index.html visualizer/index.css
-VITE_SOURCES += $(shell find $(TS_DIRS) -type f -name '*.ts')
-VITE_DIST_FILES := visualizer/dist/index.html visualizer/dist/assets/index.css \
-	visualizer/dist/assets/index.js visualizer/dist/assets/index.js.map 
+BIN_DIR := bin
 
 .PHONY: all
 all: build
 
-.PHONY: help
-help:
-	@echo "usage: make help|test|build|build-visualizer|watch-visualizer|build-lemin"
-
 .PHONY: test
 test:
-	@go test -v  ./...
+	@$(GO) test -v  ./tests/...
 
 .PHONY: build
-build: build-visualizer build-lemin
+build: bin/lem-in
 
-.PHONY: build-visualizer
-build-visualizer: node_modules $(VITE_DIST_FILES)
+.PHONY: build-wasm
+build-wasm: bin/lem-in.wasm
 
-.PHONY: build-lemin
-build-lemin: $(EXECUTABLE)
+bin/lem-in.wasm: $(GO_SOURCES) wasm/main.go
+	GOOS=js GOARCH=wasm $(GO) build -o=$@ wasm/main.go
 
-.PHONY: watch-visualizer
-watch-visualizer: node_modules
-	@cd visualizer && npx vite build --watch
-
-# Use --no-save to prevent touch-ing package-lock.json
-node_modules: package-lock.json
-	$(NPM) install --no-save
-
-$(VITE_DIST_FILES): $(VITE_SOURCES) $(VITE_CONFIGS)
-	@cd visualizer && npx vite build
-
-$(EXECUTABLE): $(GO_SOURCES) $(VITE_DIST_FILES)
-	$(GO) build -o=$@
+bin/lem-in: $(GO_SOURCES) cli/main.go
+	$(GO) build -o=$@ cli/main.go
