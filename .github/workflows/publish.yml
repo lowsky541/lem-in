@@ -17,7 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           go get ./...
-      - name: Build WASM
+      - name: Build WebAssembly module
         run: |
           make build-wasm
 
@@ -34,4 +34,4 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
       - run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
