@@ -1,13 +1,14 @@
 
 GO ?= go
 BIN_DIR := bin
+DIST_DIR := dist
 
 GO_DIRS := core util
 GO_SOURCES := $(shell find $(GO_DIRS) -type f -name '*.go')
 
 # WASM target
 WASM_MAIN := wasm/main.go
-WASM_OUT := $(BIN_DIR)/lem-in.wasm
+WASM_OUT := $(DIST_DIR)/lem-in.wasm
 
 # CLI target
 CLI_MAIN := cli/main.go
@@ -49,7 +50,7 @@ $(WASM_OUT): $(GO_SOURCES) $(WASM_MAIN) | $(BIN_DIR)
 # ----------------------
 .PHONY: clean
 clean:
-	rm -rf $(WASM_OUT) $(CLI_OUT)
+	rm -rf $(CLI_OUT) $(WASM_OUT)
 
 # Create bin directory if it doesn't exist
 $(BIN_DIR):

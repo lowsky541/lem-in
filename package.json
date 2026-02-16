@@ -1,0 +1,20 @@
+{
+  "name": "lem-in-wasm",
+  "version": "1.0.0",
+  "author": "lowsky541",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lowsky541/lem-in.git"
+  },
+  "type": "module",
+  "files": [
+    "dist/"
+  ],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build:wasm": "make build-wasm"
+  }
+}
