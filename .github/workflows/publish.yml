@@ -22,6 +22,7 @@ jobs:
           make build-wasm
 
   publish:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -32,6 +33,7 @@ jobs:
         with:
           node-version: '20.x'
           registry-url: 'https://npm.pkg.github.com'
+          scope: '@lowsky541'
       - run: npm publish
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
