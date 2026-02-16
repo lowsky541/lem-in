@@ -9,7 +9,7 @@ all: build
 
 .PHONY: test
 test:
-	@$(GO) test -v  ./tests/...
+	@$(GO) test -v ./tests/...
 
 .PHONY: build
 build: bin/lem-in

@@ -8,7 +8,6 @@ import (
 	"lemin/core"
 	"lemin/util"
 	"os"
-	"time"
 )
 
 func fatal(e error) {
@@ -26,8 +25,6 @@ func printFarm(farm *core.Farm) {
 	for _, t := range farm.Tunnels {
 		fmt.Printf("%s-%s\n", t.From.Name, t.To.Name)
 	}
-
-	fmt.Println()
 }
 
 func printTurns(turns []core.Turn) {
@@ -57,21 +54,19 @@ func main() {
 		fatal(fmt.Errorf("%s: not a regular file", filepath))
 	}
 
-	start := time.Now()
-	farm, err := core.ParseFromFilepath(filepath)
+	bytes, err := os.ReadFile(filepath)
 	if err != nil {
-		fatal(err)
+		fatal(fmt.Errorf("%s: couldn't be read", filepath))
 	}
 
-	printFarm(farm)
-	fmt.Printf("Parsed input file in %v.\n\n", time.Since(start))
+	result, err := core.Run(string(bytes))
 
-	start = time.Now()
-	turns, err := core.Lemin(farm)
-	if err != nil {
-		fatal(err)
-	}
+	printFarm(result.Farm)
 
-	printTurns(turns)
-	fmt.Printf("\nFinished in %v and %d turns.\n", time.Since(start), len(turns))
+	fmt.Printf("¤ Parsing took %v.\n", result.ParseTime)
+
+	printTurns(result.Turns)
+
+	fmt.Printf("¤ Pathfinding took %v.\n", result.PathfindingTime)
+	fmt.Printf("¤ All done in %v and %d turns.\n", result.ParseTime+result.PathfindingTime, result.TurnCount)
 }

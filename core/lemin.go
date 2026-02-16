@@ -1,6 +1,12 @@
 package core
 
-import "lemin/util"
+import (
+	"errors"
+	"lemin/util"
+)
+
+// Pathfinding errors
+var ErrInsaneFarm = errors.New("no connection from start to end room")
 
 type Farm struct {
 	Ants    int       `json:"ants"`
@@ -25,6 +31,7 @@ func IsSane(farm *Farm) bool {
 }
 
 func Lemin(farm *Farm) ([]Turn, error) {
+	// Do a quick check that you can arrive to the end room from the start room
 	if !IsSane(farm) {
 		return nil, ErrInsaneFarm
 	}

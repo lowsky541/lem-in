@@ -8,15 +8,10 @@ import (
 	"syscall/js"
 )
 
-type ResponseData struct {
-	Farm  *core.Farm  `json:"data,omitempty"`
-	Turns []core.Turn `json:"turns,omitempty"`
-}
-
 type Response struct {
-	OK    bool         `json:"ok"`
-	Data  ResponseData `json:"data,omitempty"`
-	Error string       `json:"error,omitempty"`
+	OK     bool         `json:"ok"`
+	Result *core.Result `json:"data,omitempty"`
+	Error  string       `json:"error,omitempty"`
 }
 
 func marshal(resp Response) string {
@@ -27,30 +22,23 @@ func marshal(resp Response) string {
 	return string(data)
 }
 
-func marshalError(e string) string {
-	resp := Response{OK: false, Error: e}
+func marshalError(err string, res *core.Result) string {
+	resp := Response{OK: false, Error: err, Result: res}
 	return marshal(resp)
 }
 
 func run(this js.Value, args []js.Value) any {
 	if len(args) != 1 || args[0].Type() != js.TypeString {
-		return marshalError("Lemin.run() requires 1 string argument")
+		return marshalError("Lemin.run() requires 1 string argument", nil)
 	}
 
-	farm, err := core.Parse(args[0].String())
+	farmDesc := args[0].String()
+	res, err := core.Run(farmDesc)
 	if err != nil {
-		return marshalError(err.Error())
+		return marshalError(err.Error(), res)
 	}
 
-	turns, err := core.Lemin(farm)
-	if err != nil {
-		return marshalError(err.Error())
-	}
-
-	resp := Response{OK: true, Data: ResponseData{
-		Farm:  farm,
-		Turns: turns,
-	}}
+	resp := Response{OK: true, Result: res}
 	return marshal(resp)
 }
 

@@ -1,7 +1,7 @@
 Lem-in
 ------
 
-Lem-in is a program/library that takes a file describing an ant farm -- defined by a number of ants, rooms, and tunnels -- and calculates the most efficient way to move all ants from the start room to the end room in the fewest possible turns. Each tunnel can be used only once per turn, and rooms (except the start and end) can hold only one ant at a time.
+Lem-in is a program/library that takes a file ("farm description") describing an ant farm -- defined by a number of ants, rooms, and tunnels -- and calculates the most efficient way to move all ants from the start room to the end room in the fewest possible turns. Each tunnel can be used only once per turn, and rooms (except the start and end) can hold only one ant at a time.
 
 The library can either be run in native platform-agnostic Go or in Wasm. 
 

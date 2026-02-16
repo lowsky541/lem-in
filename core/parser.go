@@ -11,19 +11,20 @@ import (
 	"strings"
 )
 
+// Parser errors
 var ErrInvalidFormat = errors.New("invalid lem-in format")
 var ErrTunnelLoop = errors.New("invalid tunnel, was linked to itself")
 var ErrRoomDuplication = errors.New("room duplication was found in input")
 var ErrUnknownRoom = errors.New("unknown room when parsing tunnels")
 var ErrCommandIsNotAllowed = errors.New("invalid command, only 'start' and 'end' are allowed")
 var ErrInvalidAntCount = errors.New("invalid ant count, count must be a positive non-zero integer")
-var ErrInsaneFarm = errors.New("no connection from start to end room")
 
+// Regular expressions
 var regRoom = regexp.MustCompile(`^([^L]\w*)\s+(\d+)\s+(\d+)$`)
 var regTunnel = regexp.MustCompile(`^(\w+)\-(\w+)$`)
 
-func Parse(s string) (*Farm, error) {
-	reader := strings.NewReader(s)
+func Parse(farmDesc string) (*Farm, error) {
+	reader := strings.NewReader(farmDesc)
 	return ParseFromReader(reader)
 }
 

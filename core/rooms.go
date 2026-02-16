@@ -31,6 +31,8 @@ func (r *Room) oppositeRoom(tunnel *Tunnel) *Room {
 	} else if tunnel.To == r {
 		return tunnel.From
 	}
+
+	// This shouldn't happen
 	panic(fmt.Sprintf("Tunnel %d isn't linked to room %d", tunnel.Id, r.Id))
 }
 
@@ -40,5 +42,7 @@ func (r *Room) tunnelToRoom(next *Room) *Tunnel {
 			return t
 		}
 	}
+
+	// This shouldn't happen either
 	panic(fmt.Sprintf("There is no tunnel from room %d to %d", r.Id, next.Id))
 }

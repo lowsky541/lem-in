@@ -1,7 +1,6 @@
 package lemin_test
 
 import (
-	_ "embed"
 	"lemin/core"
 	"os"
 	"path/filepath"
@@ -9,7 +8,7 @@ import (
 	"time"
 )
 
-// Is used for tests that are not explicitly timeout-bound.
+// Used for tests that are not explicitly timeout-bound.
 // Since all tests require a timeout value, this is set to the maximum
 // representable time.Duration (int64 nanoseconds), effectively disabling
 // the timeout.
@@ -23,7 +22,7 @@ type result struct {
 type testCase struct {
 	filepath string
 	timeout  time.Duration
-	turns    int
+	maxTurns int
 	err      error
 }
 
@@ -68,8 +67,8 @@ func runTest(tC testCase) func(t *testing.T) {
 				t.Fatalf("expected %s to fail with '%s' but was '%s'", tC.filepath, err.Error(), tC.err.Error())
 			}
 
-			if tC.turns != 0 && len(turns) > tC.turns {
-				t.Fatalf("expected %s to be %d turns at most but was %d", tC.filepath, tC.turns, len(turns))
+			if tC.maxTurns != 0 && len(turns) > tC.maxTurns {
+				t.Fatalf("expected %s to be %d turns at most but was %d", tC.filepath, tC.maxTurns, len(turns))
 			}
 		}
 	}
@@ -79,27 +78,27 @@ func TestGoodSamples(t *testing.T) {
 	testCases := []testCase{
 		{
 			filepath: "../samples/example00",
-			turns:    6,
+			maxTurns: 6,
 		},
 		{
 			filepath: "../samples/example01",
-			turns:    8,
+			maxTurns: 8,
 		},
 		{
 			filepath: "../samples/example02",
-			turns:    11,
+			maxTurns: 11,
 		},
 		{
 			filepath: "../samples/example03",
-			turns:    6,
+			maxTurns: 6,
 		},
 		{
 			filepath: "../samples/example04",
-			turns:    6,
+			maxTurns: 6,
 		},
 		{
 			filepath: "../samples/example05",
-			turns:    8,
+			maxTurns: 8,
 		},
 		{
 			filepath: "../samples/example06",
